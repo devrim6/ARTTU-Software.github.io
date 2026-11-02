@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, CheckCircle2, ChevronRight, Lock, Clock } from 'lucide-react';
 import { departments } from '../data/departments';
 import { ScrollReveal } from '../components/motion/ScrollReveal';
 import { useRecruitmentStatus } from '../utils/recruitment';
 import { trackEvent } from '../utils/analytics';
+import { RecruitmentModal } from '../components/recruitment/RecruitmentModal';
 
 export const RecruitmentPage: React.FC = () => {
   const { isOpen, formattedCountdown } = useRecruitmentStatus();
+  // state for the online application modal connected to django backend
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDept, setSelectedDept] = useState<string>('');
   // Configurable Google Forms URL placeholder
   const GOOGLE_FORMS_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdLY3Ri0WpxP8jI8ymsbl8eCXstdXOzgdQTTSqCssKgtAAgcg/viewform?usp=header";
 
@@ -40,6 +44,12 @@ export const RecruitmentPage: React.FC = () => {
 
   return (
     <div className="relative w-full overflow-hidden pt-20 sm:pt-24 pb-20">
+      {/* recruitment modal connected to django backend for course demonstration */}
+      <RecruitmentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        defaultDepartment={selectedDept}
+      />
       
       {/* Dynamic Workshop & Streamline Background Layer */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
@@ -147,7 +157,19 @@ export const RecruitmentPage: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                    {/* apply online button connected to django api */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDept('Software & Telemetry');
+                        setIsModalOpen(true);
+                      }}
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-warm-900 hover:bg-black text-white font-display font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-98"
+                    >
+                      <span>Apply Online (Django API)</span>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    </button>
                     <a
                       href={GOOGLE_FORMS_URL}
                       target="_blank"
@@ -155,7 +177,7 @@ export const RecruitmentPage: React.FC = () => {
                       onClick={() => trackEvent('clicked_google_form', { form_url: GOOGLE_FORMS_URL })}
                       className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-brand-red hover:bg-brand-darkRed text-white font-display font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 group cursor-pointer hover:scale-[1.02] active:scale-98"
                     >
-                      <span>Apply via Google Forms</span>
+                      <span>Google Form</span>
                       <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </a>
                   </div>
@@ -182,7 +204,19 @@ export const RecruitmentPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-2">
+                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                    {/* apply online button connected to django api */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedDept('Software & Telemetry');
+                        setIsModalOpen(true);
+                      }}
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-warm-900 hover:bg-black text-white font-display font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-98"
+                    >
+                      <span>Apply Online (Django API)</span>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    </button>
                     <button
                       type="button"
                       disabled
