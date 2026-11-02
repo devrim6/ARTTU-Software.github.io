@@ -30,4 +30,17 @@ scripts/generate_marquee_assets.mjs
 sponsor_deck_marquee.mp4
 sponsor_marquee.mp4
 
+# python and django backend
+backend/venv/
+backend/.venv/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+db.sqlite3
+backend/db.sqlite3
+
+
 
