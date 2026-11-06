@@ -17,7 +17,7 @@ const videoIndices = heroSlideshowMedia
 
 export const HomePage: React.FC = () => {
   const { isIntroComplete, isSplashFullyDone } = useIntro();
-  const { isOpen: isRecruitmentOpen } = useRecruitmentStatus();
+  const { isOpen: isRecruitmentOpen, recruitmentsTimerStart, nextSeasonLabel, days } = useRecruitmentStatus();
 
   // Start with clean main showcase video slide on initial page load / refresh
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -908,7 +908,7 @@ export const HomePage: React.FC = () => {
                   <div className={`absolute top-4 left-4 px-3.5 py-1.5 rounded-lg bg-white/95 backdrop-blur-md text-xs font-mono font-bold shadow-sm flex items-center gap-1.5 ${
                     isRecruitmentOpen ? 'text-emerald-700' : 'text-warm-700'
                   }`}>
-                    {isRecruitmentOpen ? 'RECRUITMENT ACTIVE' : 'RECRUITMENT OPENS SEPT 28th'}
+                    {isRecruitmentOpen ? 'RECRUITMENT ACTIVE' : recruitmentsTimerStart ? `RECRUITMENT OPENS IN ${days}d` : `RECRUITMENT CLOSED • NEXT: ${nextSeasonLabel.toUpperCase()}`}
                   </div>
                 </Link>
               </ScrollReveal>

@@ -7,7 +7,7 @@ import { useRecruitmentStatus } from '../utils/recruitment';
 import { trackEvent } from '../utils/analytics';
 
 export const RecruitmentPage: React.FC = () => {
-  const { isOpen, formattedCountdown } = useRecruitmentStatus();
+  const { isOpen, recruitmentsTimerStart, nextSeasonLabel, formattedCountdown, days } = useRecruitmentStatus();
   // Configurable Google Forms URL placeholder
   const GOOGLE_FORMS_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdLY3Ri0WpxP8jI8ymsbl8eCXstdXOzgdQTTSqCssKgtAAgcg/viewform?usp=header";
 
@@ -125,7 +125,7 @@ export const RecruitmentPage: React.FC = () => {
                 </span>
                 {!isOpen && (
                   <span className="inline-flex items-center gap-1.5 text-warm-800 font-semibold bg-warm-200/70 px-3 py-1.5 rounded-lg border border-warm-300/60">
-                    <Clock className="w-3.5 h-3.5 text-warm-600" /> Submissions unlock Sept 25, 00:00
+                    <Clock className="w-3.5 h-3.5 text-warm-600" /> {recruitmentsTimerStart ? `Next cycle unlocks in ${formattedCountdown}` : `Next recruitment cycle: ${nextSeasonLabel}`}
                   </span>
                 )}
               </div>
@@ -165,20 +165,22 @@ export const RecruitmentPage: React.FC = () => {
                   <div className="space-y-2">
                     <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-warm-200/80 border border-warm-300/80 text-warm-700 text-xs font-mono font-bold w-fit">
                       <Clock className="w-3.5 h-3.5 text-warm-500" />
-                      <span>Recruitment Starts Sept 28th</span>
+                      <span>{recruitmentsTimerStart ? `Next Recruitment: ${nextSeasonLabel}` : 'Recruitments Closed'}</span>
                     </div>
 
                     <h2 className="font-display font-black text-2xl sm:text-3xl text-warm-900 tracking-tight leading-snug">
-                      Applications Open Sept 28th
+                      {recruitmentsTimerStart ? 'Applications Open Soon' : 'Recruitments Are Over'}
                     </h2>
 
                     <p className="text-sm text-warm-600 leading-relaxed font-normal">
-                      Recruitment begins on September 28th at midnight. Review open departments below and return to submit your application.
+                      {recruitmentsTimerStart
+                        ? 'The countdown for the next recruitment cycle is active. Review open departments below and prepare your application.'
+                        : `Applications for the current cycle are closed. Our next recruitment phase will open in ${nextSeasonLabel}. Review open departments below to explore our team roles and build relevant skills.`}
                     </p>
 
                     <div className="pt-1 flex items-center gap-2 text-xs font-mono text-warm-600">
-                      <span className="text-warm-400 uppercase tracking-wider">Unlocks in:</span>
-                      <span className="font-bold text-warm-900">{formattedCountdown}</span>
+                      <span className="text-warm-400 uppercase tracking-wider">{recruitmentsTimerStart ? 'Unlocks in:' : 'Next opening:'}</span>
+                      <span className="font-bold text-warm-900">{recruitmentsTimerStart ? formattedCountdown : nextSeasonLabel}</span>
                     </div>
                   </div>
 
@@ -190,10 +192,12 @@ export const RecruitmentPage: React.FC = () => {
                       className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-warm-200 text-warm-500 font-display font-bold text-xs uppercase tracking-wider border border-warm-300/90 cursor-not-allowed select-none flex items-center justify-center gap-2"
                     >
                       <Lock className="w-3.5 h-3.5 text-warm-400" />
-                      <span>Applications Open Sept 25</span>
+                      <span>{recruitmentsTimerStart ? `Opens in ${days}d` : 'Applications Closed'}</span>
                     </button>
                     <p className="text-[11px] font-mono text-warm-500 mt-2">
-                      Official Google Form unlocks automatically on September 28th at 00:00.
+                      {recruitmentsTimerStart
+                        ? `Official Google Form unlocks automatically in ${formattedCountdown}.`
+                        : `Official Google Form will unlock when the ${nextSeasonLabel} recruitment cycle begins.`}
                     </p>
                   </div>
                 </>
@@ -279,7 +283,11 @@ export const RecruitmentPage: React.FC = () => {
                               : 'bg-warm-800/80 text-warm-200'
                           }`}
                         >
-                          {isOpen ? 'Positions Open' : 'Opens Sept 28th'}
+                          {isOpen
+                            ? 'Positions Open'
+                            : recruitmentsTimerStart
+                            ? `Opens in ${days}d`
+                            : `Next: ${nextSeasonLabel}`}
                         </span>
                       </div>
                       <div className="absolute bottom-2 left-3 right-3 text-[10px] font-mono text-white/90 font-bold uppercase tracking-wider">

@@ -8,7 +8,7 @@ interface JoinModalProps {
 }
 
 export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose }) => {
-  const { isOpen: isRecruitmentOpen } = useRecruitmentStatus();
+  const { isOpen: isRecruitmentOpen, recruitmentsTimerStart, nextSeasonLabel, days } = useRecruitmentStatus();
   if (!isOpen) return null;
   const GOOGLE_FORMS_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdLY3Ri0WpxP8jI8ymsbl8eCXstdXOzgdQTTSqCssKgtAAgcg/viewform?usp=header";
 
@@ -26,7 +26,7 @@ export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose }) => {
         <div className="mb-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-xs font-mono uppercase font-bold mb-2">
             {isRecruitmentOpen ? <Users className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-            <span>{isRecruitmentOpen ? 'Recruitments Active' : 'Recruitment Opens Sept 28th'}</span>
+            <span>{isRecruitmentOpen ? 'Recruitments Active' : recruitmentsTimerStart ? `Next Recruitment Opens in ${days}d` : `Recruitment Closed (Next: ${nextSeasonLabel})`}</span>
           </div>
           <h2 className="font-display font-extrabold text-2xl sm:text-3xl text-warm-900 uppercase">
             JOIN ART TU FORMULA STUDENT
@@ -100,7 +100,7 @@ export const JoinModal: React.FC<JoinModalProps> = ({ isOpen, onClose }) => {
               className="px-6 py-2.5 rounded-xl bg-warm-200 text-warm-500 text-xs font-bold uppercase tracking-wider border border-warm-300 cursor-not-allowed select-none flex items-center gap-1.5"
             >
               <Lock className="w-3.5 h-3.5 text-warm-400" />
-              <span>Opens Sept 25 (Midnight)</span>
+              <span>{recruitmentsTimerStart ? `Opens in ${days}d` : `Closed (Next: ${nextSeasonLabel})`}</span>
             </button>
           )}
         </div>
