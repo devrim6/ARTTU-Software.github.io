@@ -1,11 +1,47 @@
 import { useState, useEffect } from 'react';
 
+/**
+ * RECRUITMENT STATUS CONFIGURATION
+ * 
+ * Centralized settings to control recruitment status across the entire website.
+ * Adjust these flags to switch between active recruitment, closed/over,
+ * and scheduled countdown states.
+ */
 
-// Recruitment opens on September 28th, 2026 at midnight (00:00:00 local Romanian time UTC+3)
-export const RECRUITMENT_START_DATE = new Date('2026-09-28T12:00:00+03:00');
+// 1. Master toggle: Is recruitment currently open and accepting submissions?
+// Set to false when recruitments are OVER / CLOSED.
+// Set to true when a recruitment campaign is actively running.
+export const isRecruitmentActive: boolean = false;
+
+// 2. Countdown timer toggle for the upcoming recruitment cycle:
+// - Set to true to start the live countdown timer ticking down to NEXT_RECRUITMENT_DATE.
+// - Set to false when recruitments are over and the exact countdown has not started yet
+//   (shows the next season announcement instead of a live countdown).
+export const recruitmentsTimerStart: boolean = false;
+
+// 3. Exact target date & time for the next recruitment opening:
+// (Used when recruitmentsTimerStart = true)
+export const NEXT_RECRUITMENT_DATE: Date = new Date('2027-10-01T00:00:00+03:00');
+
+// 4. Human-readable season / timeline for when recruitments open next:
+// (e.g. 'Autumn 2027', 'October 2027', 'Next Academic Year')
+export const NEXT_RECRUITMENT_SEASON: string = 'Autumn 2027';
+
+// Backward compatibility export for any existing imports
+export const RECRUITMENT_START_DATE: Date = NEXT_RECRUITMENT_DATE;
 
 export interface RecruitmentStatus {
+  /** True when recruitment is actively open and accepting candidate applications */
   isOpen: boolean;
+  /** True when recruitments are concluded / over */
+  isOver: boolean;
+  /** Whether the countdown timer to the next recruitment opening is currently running */
+  recruitmentsTimerStart: boolean;
+  /** Target date of next recruitment cycle */
+  nextRecruitmentDate: Date;
+  /** Human-readable season / date string for the next recruitment cycle */
+  nextSeasonLabel: string;
+  /** Countdown figures (used when recruitmentsTimerStart is true) */
   days: number;
   hours: number;
   minutes: number;
@@ -14,37 +50,71 @@ export interface RecruitmentStatus {
 }
 
 function calculateStatus(): RecruitmentStatus {
-  // Allow manual override for previewing and testing via query params: ?recruitment=open or ?recruitment=closed
+  let active = isRecruitmentActive;
+  let timerActive = recruitmentsTimerStart;
+
+  // Allow manual override for previewing and testing via query params:
+  // ?recruitment=open   -> forces active recruitment state
+  // ?recruitment=closed -> forces recruitment closed with timer off
+  // ?recruitment=timer  -> forces recruitment closed with timer on
   if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('recruitment') === 'open') {
-      return {
-        isOpen: true,
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0,
-        formattedCountdown: '00d 00h 00m 00s',
-      };
-    }
-    if (params.get('recruitment') === 'closed') {
-      return {
-        isOpen: false,
-        days: 1,
-        hours: 10,
-        minutes: 45,
-        seconds: 0,
-        formattedCountdown: '01d 10h 45m 00s',
-      };
+    const query = params.get('recruitment');
+    if (query === 'open') {
+      active = true;
+      timerActive = false;
+    } else if (query === 'closed') {
+      active = false;
+      timerActive = false;
+    } else if (query === 'timer') {
+      active = false;
+      timerActive = true;
     }
   }
 
+  // 1. Recruitment is actively open
+  if (active) {
+    return {
+      isOpen: true,
+      isOver: false,
+      recruitmentsTimerStart: false,
+      nextRecruitmentDate: NEXT_RECRUITMENT_DATE,
+      nextSeasonLabel: NEXT_RECRUITMENT_SEASON,
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+      formattedCountdown: '00d 00h 00m 00s',
+    };
+  }
+
+  // 2. Recruitment is over / closed and countdown timer is NOT started
+  if (!timerActive) {
+    return {
+      isOpen: false,
+      isOver: true,
+      recruitmentsTimerStart: false,
+      nextRecruitmentDate: NEXT_RECRUITMENT_DATE,
+      nextSeasonLabel: NEXT_RECRUITMENT_SEASON,
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+      formattedCountdown: '',
+    };
+  }
+
+  // 3. Recruitment is over / closed and countdown timer IS started
   const now = Date.now();
-  const diff = RECRUITMENT_START_DATE.getTime() - now;
+  const diff = NEXT_RECRUITMENT_DATE.getTime() - now;
 
   if (diff <= 0) {
     return {
       isOpen: true,
+      isOver: false,
+      recruitmentsTimerStart: true,
+      nextRecruitmentDate: NEXT_RECRUITMENT_DATE,
+      nextSeasonLabel: NEXT_RECRUITMENT_SEASON,
       days: 0,
       hours: 0,
       minutes: 0,
@@ -64,6 +134,10 @@ function calculateStatus(): RecruitmentStatus {
 
   return {
     isOpen: false,
+    isOver: true,
+    recruitmentsTimerStart: true,
+    nextRecruitmentDate: NEXT_RECRUITMENT_DATE,
+    nextSeasonLabel: NEXT_RECRUITMENT_SEASON,
     days,
     hours,
     minutes,
@@ -76,6 +150,7 @@ export function useRecruitmentStatus(): RecruitmentStatus {
   const [status, setStatus] = useState<RecruitmentStatus>(calculateStatus);
 
   useEffect(() => {
+    // Only set an interval timer if recruitmentsTimerStart is enabled
     const timer = setInterval(() => {
       const nextStatus = calculateStatus();
       setStatus(nextStatus);

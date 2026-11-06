@@ -1,13 +1,3 @@
-# software engineering course project — backend & mvc architecture
-
-this project integrates a **django rest framework** backend with our existing **react 18 + vite** formula student website to implement a complete full-stack **mvc (model-view-controller)** architecture.
-
----
-
-## 🏎️ how to run the project for demonstration
-
-you will need two terminals running: one for django (backend) and one for react (frontend).
-
 ### terminal 1: run django backend (port 8000)
 ```bash
 cd backend
@@ -35,11 +25,10 @@ admin login credentials:
 # in the root project folder
 npm run dev
 ```
-frontend runs at: **http://localhost:5173**
 
 ---
 
-## 📐 mvc architecture breakdown (how to explain to the professor)
+## mvc architecture breakdown
 
 ```
        [ View / Client Layer ]  <--- React 18 + Vite (localhost:5173)
@@ -97,14 +86,3 @@ frontend runs at: **http://localhost:5173**
 5. **verify full-stack synchronization:**
    * go back to the react app tab, click **"Refresh"**.
    * watch the status badge turn green `ACCEPTED` live in the frontend!
-
----
-
-## 🧪 running automated tests
-
-to verify backend endpoints and model validation:
-```bash
-cd backend
-python manage.py test
-```
-tests pass in under 0.1s verifying `GET /api/cars/` and `POST /api/recruitment/`.

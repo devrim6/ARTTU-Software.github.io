@@ -4,7 +4,7 @@ from .models import Car, Sponsor, RecruitmentApplication
 from .serializers import CarSerializer, SponsorSerializer, RecruitmentApplicationSerializer
 
 # ==============================================================================
-# controller layer (in django terms these are views/viewsets)
+# controller layer (in django terms views/viewsets)
 # in mvc architecture, this acts as the controller:
 # 1. receives http request from client/browser (react)
 # 2. fetches or updates data using the models (m)
