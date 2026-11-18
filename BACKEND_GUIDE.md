@@ -1,8 +1,8 @@
-# backend setup
+# simple recruitment portal (django + react)
 
-need two terminals to run frontend and backend together.
+minimal mvc setup with just the recruitment page and django backend.
 
-## django backend
+## backend
 ```bash
 cd backend
 .\venv\Scripts\activate
@@ -10,19 +10,19 @@ python manage.py migrate
 python manage.py seed_data
 python manage.py runserver
 ```
-api runs on http://localhost:8000
-admin page is at http://localhost:8000/admin (user `admin`, pass `admin123`)
+runs on http://localhost:8000
+admin panel: http://localhost:8000/admin (user `admin`, pass `admin123`)
 
-## react frontend
+## frontend
 ```bash
 npm run dev
 ```
-frontend runs on http://localhost:5173
+runs on http://localhost:5173
 
-## mvc layout
-- model: `backend/api/models.py` (Car, Sponsor, RecruitmentApplication in sqlite)
-- view: react components (`src/components/recruitment/RecruitmentModal.tsx`) + `backend/api/serializers.py` for json
-- controller: `backend/api/views.py` and `backend/api/urls.py` (handles GET/POST requests)
+## mvc structure
+- model: `backend/api/models.py` (`RecruitmentApplication` in sqlite)
+- view: `src/pages/RecruitmentPage.tsx` (form + list) and `backend/api/serializers.py` (json)
+- controller: `backend/api/views.py` and `backend/api/urls.py` (`RecruitmentApplicationViewSet`)
 
 ## tests
 ```bash
