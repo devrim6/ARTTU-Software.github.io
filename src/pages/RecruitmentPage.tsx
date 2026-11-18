@@ -1,419 +1,301 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ExternalLink, CheckCircle2, ChevronRight, Lock, Clock } from 'lucide-react';
-import { departments } from '../data/departments';
-import { ScrollReveal } from '../components/motion/ScrollReveal';
-import { useRecruitmentStatus } from '../utils/recruitment';
-import { trackEvent } from '../utils/analytics';
-import { RecruitmentModal } from '../components/recruitment/RecruitmentModal';
+import React, { useEffect, useState } from 'react';
 
-export const RecruitmentPage: React.FC = () => {
-  const { isOpen, recruitmentsTimerStart, nextSeasonLabel, formattedCountdown, days } = useRecruitmentStatus();
-  // state for the online application modal connected to django backend
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDept, setSelectedDept] = useState<string>('');
-  // Configurable Google Forms URL placeholder
-  const GOOGLE_FORMS_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdLY3Ri0WpxP8jI8ymsbl8eCXstdXOzgdQTTSqCssKgtAAgcg/viewform?usp=header";
+// recruitment page connected directly to django rest api
 
-  const stages = [
-    {
-      step: '01',
-      title: 'Google Form & CV',
-      desc: 'Submit faculty info, department choices & CV.',
-      badgeColor: 'bg-brand-red text-white',
-    },
-    {
-      step: '02',
-      title: 'Application Review',
-      desc: 'Leads review background, CV, & technical interests.',
-      badgeColor: 'bg-warm-200 text-warm-800',
-    },
-    {
-      step: '03',
-      title: 'Workshop Interview',
-      desc: 'Informal in-person chat at our workshop.',
-      badgeColor: 'bg-warm-200 text-warm-800',
-    },
-    {
-      step: '04',
-      title: 'Hands-on Onboarding',
-      desc: 'Pair with senior members on racecar subsystems.',
-      badgeColor: 'bg-emerald-700 text-white',
-    },
-  ];
+interface Application {
+  id: number;
+  full_name: string;
+  email: string;
+  faculty: string;
+  year_of_study: number;
+  department: string;
+  motivation: string;
+  status: 'pending' | 'interview' | 'accepted' | 'rejected';
+  created_at: string;
+}
+
+const API_URL = 'http://localhost:8000/api/recruitment/';
+
+const DEPARTMENTS = [
+  'Mechanical',
+  'Low Voltage & Harnessing',
+  'High Voltage Powertrain',
+  'Software & Telemetry',
+  'Business & Marketing',
+];
+
+export function RecruitmentPage() {
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [faculty, setFaculty] = useState('Faculty of Automation and Computer Science');
+  const [yearOfStudy, setYearOfStudy] = useState(2);
+  const [department, setDepartment] = useState(DEPARTMENTS[3]);
+  const [motivation, setMotivation] = useState('');
+
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // load existing applications from django on startup
+  const loadApplications = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = await res.json();
+      setApplications(data);
+    } catch {
+      setError('could not reach django backend at http://localhost:8000');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadApplications();
+  }, []);
+
+  // send new application to django
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: fullName,
+          email,
+          faculty,
+          year_of_study: Number(yearOfStudy),
+          department,
+          motivation,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData ? JSON.stringify(errData) : `status ${res.status}`);
+      }
+
+      const result = await res.json();
+      setMessage(`saved application #${result.data?.id ?? ''}`);
+      setFullName('');
+      setEmail('');
+      setMotivation('');
+      await loadApplications();
+    } catch {
+      setError('failed to submit, check if django server is running');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // delete an application from django
+  const handleDelete = async (id: number) => {
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}${id}/`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      setApplications((prev) => prev.filter((item) => item.id !== id));
+    } catch {
+      setError('could not delete application');
+    }
+  };
 
   return (
-    <div className="relative w-full overflow-hidden pt-20 sm:pt-24 pb-20">
-      {/* modal for online application */}
-      <RecruitmentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        defaultDepartment={selectedDept}
-      />
-      
-      {/* Dynamic Workshop & Streamline Background Layer */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
-        {/* Faint Workshop Paddock Flow Backdrop with feathered gradient mask */}
-        <div
-          className="absolute top-0 inset-x-0 h-[1250px] opacity-[0.16] mix-blend-multiply bg-top bg-cover bg-no-repeat pointer-events-none"
-          style={{
-            backgroundImage: `url('/assets/recruitment_flow_bg.jpg')`,
-            maskImage: 'linear-gradient(to bottom, black 0%, rgba(0,0,0,0.7) 40%, transparent 80%)',
-          }}
-        />
-
-        {/* Ambient Floating Light Orbs */}
-        <div className="absolute top-[12%] -left-20 w-[450px] h-[450px] rounded-full bg-brand-red/[0.05] blur-[130px] animate-ambient-float-1" />
-        <div className="absolute top-[48%] right-[-10%] w-[550px] h-[550px] rounded-full bg-brand-brightRed/[0.04] blur-[140px] animate-ambient-float-2" />
-        <div className="absolute top-[80%] left-[8%] w-[500px] h-[500px] rounded-full bg-emerald-500/[0.03] blur-[130px] animate-ambient-float-1" />
-
-        {/* High-Speed Filaments */}
-        <div className="absolute top-[18%] left-[8%] w-52 h-px bg-gradient-to-r from-transparent via-brand-red/20 to-transparent animate-wind-streak-1" />
-        <div className="absolute top-[52%] right-[12%] w-64 h-px bg-gradient-to-r from-transparent via-brand-brightRed/16 to-transparent animate-wind-streak-2" />
-
-        {/* Margin Sector Ticks */}
-        <div className="hidden lg:flex flex-col gap-1.5 absolute top-[25%] left-5 opacity-25" aria-hidden="true">
-          <div className="w-3 h-px bg-warm-400" />
-          <div className="w-1.5 h-px bg-warm-400" />
-          <div className="w-4 h-px bg-brand-red" />
-        </div>
-        <div className="hidden lg:flex flex-col gap-1.5 absolute top-[68%] right-5 opacity-25" aria-hidden="true">
-          <div className="w-4 h-px bg-brand-red" />
-          <div className="w-1.5 h-px bg-warm-400" />
-          <div className="w-3 h-px bg-warm-400" />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+      {/* left side: application form */}
+      <section className="bg-white border border-warm-250 rounded-xl p-6 space-y-4">
+        <div>
+          <h2 className="font-display font-bold text-xl text-warm-900">
+            Apply to Join the Team
+          </h2>
+          <p className="text-xs text-warm-600 mt-1">
+            Open to all UTCN students.
+          </p>
         </div>
 
-        {/* Continuous Animated SVG Streamlines (Crisp Dotted Lines) */}
-        <svg
-          className="absolute inset-0 w-full h-full"
-          fill="none"
-          viewBox="0 0 1440 2800"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M 140,0 C 700,320 1260,520 1120,900 C 960,1280 220,1460 380,1880 C 520,2220 1180,2420 1020,2800"
-            stroke="#ef4444"
-            strokeWidth="1.8"
-            strokeOpacity="0.16"
-            strokeDasharray="14 18"
-            className="animate-flow-streamline"
-          />
-          <path
-            d="M 170,0 C 730,320 1290,520 1150,900 C 990,1280 250,1460 410,1880 C 550,2220 1210,2420 1050,2800"
-            stroke="#dc2626"
-            strokeWidth="1.2"
-            strokeOpacity="0.12"
-            strokeDasharray="10 14"
-            className="animate-flow-streamline-reverse"
-          />
-        </svg>
-      </div>
+        {message && (
+          <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
+            {message}
+          </div>
+        )}
 
-      {/* Content Container (No boxes, pure dynamic flow, tight vertical rhythm) */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16 sm:space-y-20">
-        
-        {/* 1. Unified Hero & Instant Application Banner (Open Editorial Spread, No Box) */}
-        <ScrollReveal direction="up" duration={550} distance={20} triggerOnce={false}>
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 pb-10 border-b border-warm-200/80">
-            {/* Left Column: Title & Mission */}
-            <div className="space-y-4 max-w-2xl">
-              
-              <h1 className="font-display font-black text-3xl sm:text-4xl lg:text-5xl text-warm-900 uppercase tracking-tight leading-tight">
-                JOIN ART TU FORMULA STUDENT
-              </h1>
-              
-              <p className="text-warm-700 text-sm sm:text-base leading-relaxed font-normal">
-                Open to all students of the Technical University of Cluj-Napoca (UTCN). Gain real-world engineering, high-voltage powertrains, telemetry software, and motorsport project management experience on Europe's premier circuits.
-              </p>
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs">
+            {error}
+          </div>
+        )}
 
-              <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono text-warm-600">
-                <span className="inline-flex items-center gap-1.5 text-emerald-800 font-semibold bg-emerald-50/90 px-3 py-1.5 rounded-lg border border-emerald-200">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Open to all UTCN faculties
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-warm-800 font-semibold bg-warm-200/70 px-3 py-1.5 rounded-lg border border-warm-300/60">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-brand-red" /> No prior experience required
-                </span>
-                {!isOpen && (
-                  <span className="inline-flex items-center gap-1.5 text-warm-800 font-semibold bg-warm-200/70 px-3 py-1.5 rounded-lg border border-warm-300/60">
-                    <Clock className="w-3.5 h-3.5 text-warm-600" /> {recruitmentsTimerStart ? `Next cycle unlocks in ${formattedCountdown}` : `Next recruitment cycle: ${nextSeasonLabel}`}
-                  </span>
-                )}
-              </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-warm-800 mb-1">
+              Full Name
+            </label>
+            <input
+              type="text"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Andrei Popescu"
+              className="w-full px-3 py-2 rounded-lg border border-warm-300 text-sm bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-warm-800 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@student.utcluj.ro"
+              className="w-full px-3 py-2 rounded-lg border border-warm-300 text-sm bg-white"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-warm-800 mb-1">
+                Faculty
+              </label>
+              <input
+                type="text"
+                required
+                value={faculty}
+                onChange={(e) => setFaculty(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-warm-300 text-sm bg-white"
+              />
             </div>
 
-            {/* Right Column: Direct Apply Area (Open Canvas, No Card Box) */}
-            <div className="lg:max-w-md w-full shrink-0 flex flex-col justify-center space-y-4">
-              {isOpen ? (
-                <>
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-mono uppercase tracking-wider text-brand-red font-bold block">
-                      Official Application
-                    </span>
-                    <h2 className="font-display font-black text-2xl sm:text-3xl text-warm-900 tracking-tight leading-snug">
-                      Ready to race with us?
-                    </h2>
-                    <p className="text-sm text-warm-600 leading-relaxed font-normal">
-                      Applications are reviewed continuously by department coordinators.
-                    </p>
-                  </div>
-
-                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                    {/* apply online button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedDept('Software & Telemetry');
-                        setIsModalOpen(true);
-                      }}
-                      className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-warm-900 hover:bg-black text-white font-display font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-98"
-                    >
-                      <span>Apply Online</span>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    </button>
-                    <a
-                      href={GOOGLE_FORMS_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => trackEvent('clicked_google_form', { form_url: GOOGLE_FORMS_URL })}
-                      className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-brand-red hover:bg-brand-darkRed text-white font-display font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 group cursor-pointer hover:scale-[1.02] active:scale-98"
-                    >
-                      <span>Google Form</span>
-                      <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                    </a>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-warm-200/80 border border-warm-300/80 text-warm-700 text-xs font-mono font-bold w-fit">
-                      <Clock className="w-3.5 h-3.5 text-warm-500" />
-                      <span>{recruitmentsTimerStart ? `Next Recruitment: ${nextSeasonLabel}` : 'Recruitments Closed'}</span>
-                    </div>
-
-                    <h2 className="font-display font-black text-2xl sm:text-3xl text-warm-900 tracking-tight leading-snug">
-                      {recruitmentsTimerStart ? 'Applications Open Soon' : 'Recruitments Are Over'}
-                    </h2>
-
-                    <p className="text-sm text-warm-600 leading-relaxed font-normal">
-                      {recruitmentsTimerStart
-                        ? 'The countdown for the next recruitment cycle is active. Review open departments below and prepare your application.'
-                        : `Applications for the current cycle are closed. Our next recruitment phase will open in ${nextSeasonLabel}. Review open departments below to explore our team roles and build relevant skills.`}
-                    </p>
-
-                    <div className="pt-1 flex items-center gap-2 text-xs font-mono text-warm-600">
-                      <span className="text-warm-400 uppercase tracking-wider">{recruitmentsTimerStart ? 'Unlocks in:' : 'Next opening:'}</span>
-                      <span className="font-bold text-warm-900">{recruitmentsTimerStart ? formattedCountdown : nextSeasonLabel}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                    {/* apply online button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedDept('Software & Telemetry');
-                        setIsModalOpen(true);
-                      }}
-                      className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-warm-900 hover:bg-black text-white font-display font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-98"
-                    >
-                      <span>Apply Online</span>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      aria-disabled="true"
-                      className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-warm-200 text-warm-500 font-display font-bold text-xs uppercase tracking-wider border border-warm-300/90 cursor-not-allowed select-none flex items-center justify-center gap-2"
-                    >
-                      <Lock className="w-3.5 h-3.5 text-warm-400" />
-                      <span>{recruitmentsTimerStart ? `Opens in ${days}d` : 'Applications Closed'}</span>
-                    </button>
-                    <p className="text-[11px] font-mono text-warm-500 mt-2">
-                      {recruitmentsTimerStart
-                        ? `Official Google Form unlocks automatically in ${formattedCountdown}.`
-                        : `Official Google Form will unlock when the ${nextSeasonLabel} recruitment cycle begins.`}
-                    </p>
-                  </div>
-                </>
-              )}
+            <div>
+              <label className="block text-xs font-semibold text-warm-800 mb-1">
+                Year (1-6)
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={6}
+                required
+                value={yearOfStudy}
+                onChange={(e) => setYearOfStudy(parseInt(e.target.value, 10) || 1)}
+                className="w-full px-3 py-2 rounded-lg border border-warm-300 text-sm bg-white"
+              />
             </div>
           </div>
-        </ScrollReveal>
 
-        {/* 2. 4-Stage Connected Recruitment Roadmap (Open on Canvas, No Box Trap) */}
-        <div className="space-y-6">
-          <ScrollReveal direction="up" duration={550} distance={20} triggerOnce={false}>
-            <h2 className="font-display font-black text-xl sm:text-2xl text-warm-900 uppercase tracking-tight">
-              Recruitment Process & Roadmap
+          <div>
+            <label className="block text-xs font-semibold text-warm-800 mb-1">
+              Department
+            </label>
+            <select
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-warm-300 text-sm bg-white"
+            >
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-warm-800 mb-1">
+              Motivation
+            </label>
+            <textarea
+              required
+              rows={3}
+              value={motivation}
+              onChange={(e) => setMotivation(e.target.value)}
+              placeholder="why do you want to join?"
+              className="w-full px-3 py-2 rounded-lg border border-warm-300 text-sm bg-white resize-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full py-2.5 px-4 rounded-lg bg-brand-red hover:bg-brand-darkRed text-white text-xs font-bold uppercase tracking-wider disabled:opacity-60 cursor-pointer"
+          >
+            {submitting ? 'Submitting...' : 'Submit Application'}
+          </button>
+        </form>
+      </section>
+
+      {/* right side: applications from database */}
+      <section className="bg-white border border-warm-250 rounded-xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-display font-bold text-xl text-warm-900">
+              Submitted Applications
             </h2>
-          </ScrollReveal>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {stages.map((st, idx) => (
-              <ScrollReveal key={idx} direction="up" delay={idx * 60} duration={550} distance={15} triggerOnce={false}>
-                <div className="p-4 rounded-2xl bg-white/75 backdrop-blur-xs border border-warm-200/80 flex items-start gap-3.5 h-full hover:border-warm-350 hover:shadow-sm transition">
-                  <span className={`w-8 h-8 rounded-lg font-mono font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs ${st.badgeColor}`}>
-                    {st.step}
-                  </span>
-                  <div className="space-y-1">
-                    <h3 className="font-display font-bold text-sm text-warm-900">
-                      {st.title}
-                    </h3>
-                    <p className="text-xs text-warm-600 leading-relaxed">
-                      {st.desc}
-                    </p>
-                  </div>
-                </div>
-              </ScrollReveal>
-            ))}
+            <p className="text-xs text-warm-600">
+              {applications.length} total
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={loadApplications}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-lg border border-warm-300 text-xs font-mono hover:bg-warm-100 cursor-pointer"
+          >
+            {loading ? 'Loading...' : 'Refresh'}
+          </button>
         </div>
 
-        {/* 3. Recruiting Departments (Open Grid, Heroic Thumbnails) */}
-        <div className="space-y-6 pt-6 border-t border-warm-200/80">
-          <ScrollReveal direction="up" duration={550} distance={20} triggerOnce={false}>
-            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-              <div>
-                <h2 className="font-display font-black text-xl sm:text-2xl text-warm-900 uppercase tracking-tight">
-                  Recruiting Departments
-                </h2>
-                <p className="text-xs sm:text-sm text-warm-600 mt-1">
-                  Explore open positions across engineering, software, and operations.
-                </p>
-              </div>
-              <Link
-                to="/departments"
-                onClick={() => trackEvent('clicked_department_deep_dive')}
-                className="text-xs font-mono text-brand-red hover:underline font-bold flex items-center gap-1 transition shrink-0"
+        {applications.length === 0 ? (
+          <p className="text-xs text-warm-500 py-6 text-center">
+            No applications yet.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {applications.map((app) => (
+              <div
+                key={app.id}
+                className="p-3.5 rounded-lg border border-warm-250 bg-warm-100/40 space-y-1.5 text-xs"
               >
-                <span>Read full department deep-dive</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {departments.map((dept, idx) => (
-              <ScrollReveal key={dept.id} direction="up" delay={(idx % 6) * 50} duration={550} distance={15} triggerOnce={false} className="h-full">
-                <Link
-                  to={`/departments#${dept.id}`}
-                  className="rounded-2xl bg-white/80 backdrop-blur-xs border border-warm-250 hover:border-brand-red/50 transition-all duration-300 group flex flex-col justify-between hover:bg-white hover:shadow-lg hover:-translate-y-1 overflow-hidden h-full"
-                >
-                  <div>
-                    {/* Department Thumbnail */}
-                    <div className="relative h-36 w-full overflow-hidden bg-warm-200">
-                      <img
-                        src={dept.image}
-                        alt={dept.name}
-                        loading="lazy"
-                        className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out ${dept.imagePosition || 'object-center'}`}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-warm-950/80 via-warm-950/20 to-transparent" />
-                      <div className="absolute top-2.5 left-2.5">
-                        <span
-                          className={`px-2.5 py-1 rounded-md backdrop-blur-xs text-[10px] font-mono font-bold shadow-2xs ${
-                            isOpen
-                              ? 'bg-emerald-600/90 text-white'
-                              : 'bg-warm-800/80 text-warm-200'
-                          }`}
-                        >
-                          {isOpen
-                            ? 'Positions Open'
-                            : recruitmentsTimerStart
-                            ? `Opens in ${days}d`
-                            : `Next: ${nextSeasonLabel}`}
-                        </span>
-                      </div>
-                      <div className="absolute bottom-2 left-3 right-3 text-[10px] font-mono text-white/90 font-bold uppercase tracking-wider">
-                        {dept.title}
-                      </div>
-                    </div>
-
-                    <div className="p-4 space-y-1">
-                      <h3 className="font-display font-black text-base text-warm-900 group-hover:text-brand-red transition">
-                        {dept.name}
-                      </h3>
-                      <p className="text-xs text-warm-600 leading-relaxed line-clamp-2 font-normal">
-                        {dept.tagline}
-                      </p>
-                    </div>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-bold text-warm-900">
+                    #{app.id} {app.full_name}
                   </div>
-
-                  <div className="px-4 pb-4 pt-0">
-                    <div className="pt-2.5 border-t border-warm-200 flex items-center justify-between text-xs font-mono text-warm-500 group-hover:text-brand-red font-semibold">
-                      <span>View Responsibilities & Tools</span>
-                      <span className="group-hover:translate-x-1 transition-transform">→</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-warm-200 text-warm-800 font-mono text-[10px] uppercase">
+                      {app.status}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(app.id)}
+                      className="text-[11px] text-brand-red hover:underline cursor-pointer"
+                    >
+                      delete
+                    </button>
                   </div>
-                </Link>
-              </ScrollReveal>
+                </div>
+
+                <div className="text-[11px] text-warm-600 font-mono">
+                  {app.department} | Year {app.year_of_study} | {app.email}
+                </div>
+
+                <p className="text-warm-700">{app.motivation}</p>
+              </div>
             ))}
           </div>
-        </div>
-
-        {/* 4. Student Culture Gallery Strip (Heroic Frames, No AI Tells) */}
-        <div className="space-y-6 pt-6 border-t border-warm-200/80">
-          <ScrollReveal direction="up" duration={550} distance={20} triggerOnce={false}>
-            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-brand-red uppercase tracking-wider font-bold">
-                  WORKSHOP CULTURE
-                </span>
-                <span className="text-warm-400">/</span>
-                <span className="font-display font-black text-base sm:text-lg text-warm-900 uppercase tracking-tight">
-                  Life @ ART TU
-                </span>
-              </div>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <ScrollReveal direction="up" delay={0} duration={550} distance={15} triggerOnce={false}>
-              <div className="rounded-2xl overflow-hidden shadow-md h-40 sm:h-48 bg-warm-150 group relative">
-                <img src="/assets/IMG_8575-1-1-scaled.webp" alt="Workshop Assembly" className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-85 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white font-mono text-xs">
-                  Testing
-                </div>
-              </div>
-            </ScrollReveal>
-
-            <ScrollReveal direction="up" delay={60} duration={550} distance={15} triggerOnce={false}>
-              <div className="rounded-2xl overflow-hidden shadow-md h-40 sm:h-48 bg-warm-150 group relative">
-                <img src="/assets/DBV_FSBK-Day4-416-scaled.webp" alt="Trackside Telemetry" className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-85 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white font-mono text-xs">
-                  High Fashion (Boots Not Included)
-                </div>
-              </div>
-            </ScrollReveal>
-
-            <ScrollReveal direction="up" delay={120} duration={550} distance={15} triggerOnce={false}>
-              <div className="rounded-2xl overflow-hidden shadow-md h-40 sm:h-48 bg-warm-150 group relative">
-                <img src="/assets/DSC_0102-1-1-scaled.webp" alt="Paddock Testing" className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-85 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white font-mono text-xs">
-                  The Secret Third Thing
-                </div>
-              </div>
-            </ScrollReveal>
-
-            <ScrollReveal direction="up" delay={180} duration={550} distance={15} triggerOnce={false}>
-              <div className="rounded-2xl overflow-hidden shadow-md h-40 sm:h-48 bg-warm-150 group relative">
-                <img src="/assets/IMG_8128-1-scaled.webp" alt="Team Spirit" className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-85 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-xs text-white font-mono text-xs">
-                  Team Spirit
-                </div>
-              </div>
-            </ScrollReveal>
-          </div>
-        </div>
-
-      </div>
-
+        )}
+      </section>
     </div>
   );
-};
+}
 
 export default RecruitmentPage;
