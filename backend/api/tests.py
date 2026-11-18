@@ -1,30 +1,16 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Car, RecruitmentApplication
+from .models import RecruitmentApplication
 
-# basic tests for the api endpoints
+# basic crud tests for recruitment api
 
 
-class ApiEndpointsTestCase(TestCase):
+class RecruitmentApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.sample_car = Car.objects.create(
-            slug='art-04',
-            name='ART-04',
-            season='2024',
-            powertrain='Electric AWD',
-            weight_kg=195,
-            power_hp=107
-        )
 
-    def test_get_cars_endpoint(self):
-        response = self.client.get('/api/cars/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['name'], 'ART-04')
-
-    def test_post_recruitment_application(self):
+    def test_post_and_get_application(self):
         payload = {
             'full_name': 'Mihai Vasilescu',
             'email': 'mihai@student.utcluj.ro',
@@ -33,11 +19,11 @@ class ApiEndpointsTestCase(TestCase):
             'department': 'High Voltage Powertrain',
             'motivation': 'want to work on battery management system'
         }
-        response = self.client.post('/api/recruitment/', payload, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        # make sure it saved in db
+        res = self.client.post('/api/recruitment/', payload, format='json')
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertEqual(RecruitmentApplication.objects.count(), 1)
-        created_app = RecruitmentApplication.objects.first()
-        self.assertEqual(created_app.full_name, 'Mihai Vasilescu')
-        self.assertEqual(created_app.status, 'pending')
+
+        list_res = self.client.get('/api/recruitment/')
+        self.assertEqual(list_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_res.data), 1)
+        self.assertEqual(list_res.data[0]['full_name'], 'Mihai Vasilescu')

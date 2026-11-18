@@ -82,7 +82,7 @@ WSGI_APPLICATION = 'arttubackend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': BASE_DIR / 'db_simple.sqlite3',
     }
 }
 
