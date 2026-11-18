@@ -44,7 +44,7 @@ export const RecruitmentPage: React.FC = () => {
 
   return (
     <div className="relative w-full overflow-hidden pt-20 sm:pt-24 pb-20">
-      {/* recruitment modal connected to django backend for course demonstration */}
+      {/* modal for online application */}
       <RecruitmentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -158,7 +158,7 @@ export const RecruitmentPage: React.FC = () => {
                   </div>
 
                   <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                    {/* apply online button connected to django api */}
+                    {/* apply online button */}
                     <button
                       type="button"
                       onClick={() => {
@@ -167,7 +167,7 @@ export const RecruitmentPage: React.FC = () => {
                       }}
                       className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-warm-900 hover:bg-black text-white font-display font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-98"
                     >
-                      <span>Apply Online (Django API)</span>
+                      <span>Apply Online</span>
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     </button>
                     <a
@@ -207,7 +207,7 @@ export const RecruitmentPage: React.FC = () => {
                   </div>
 
                   <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                    {/* apply online button connected to django api */}
+                    {/* apply online button */}
                     <button
                       type="button"
                       onClick={() => {
@@ -216,7 +216,7 @@ export const RecruitmentPage: React.FC = () => {
                       }}
                       className="w-full sm:w-auto px-6 py-3.5 rounded-lg bg-warm-900 hover:bg-black text-white font-display font-bold text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-98"
                     >
-                      <span>Apply Online (Django API)</span>
+                      <span>Apply Online</span>
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     </button>
                     <button

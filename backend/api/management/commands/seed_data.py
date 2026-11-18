@@ -2,25 +2,18 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from api.models import Car, Sponsor, RecruitmentApplication
 
-# ==============================================================================
-# database seeder command
-# run with: python manage.py seed_data
-# this fills the sqlite database with starter data from our formula student team
-# and creates an admin user so we don't have to start with an empty database
-# ==============================================================================
+# management command to fill db with starter data (python manage.py seed_data)
+
 
 class Command(BaseCommand):
-    help = 'seeds initial team data and admin account for course demonstration'
+    help = 'seed initial team data and admin user'
 
     def handle(self, *args, **kwargs):
-        # 1. create admin user for the course demo
+        # default admin account
         if not User.objects.filter(username='admin').exists():
             User.objects.create_superuser('admin', 'admin@arttu.ro', 'admin123')
-            self.stdout.write(self.style.SUCCESS('created superuser "admin" with password "admin123"'))
-        else:
-            self.stdout.write('admin user already exists')
+            self.stdout.write('created superuser admin / admin123')
 
-        # 2. seed formula student cars
         cars_data = [
             {
                 'slug': 'art-04',
@@ -30,7 +23,7 @@ class Command(BaseCommand):
                 'weight_kg': 195,
                 'power_hp': 107,
                 'top_speed_kmh': 120,
-                'description': 'our first all-wheel-drive electric prototype featuring carbon monocoque and custom torque vectoring'
+                'description': 'all-wheel-drive electric prototype with carbon monocoque'
             },
             {
                 'slug': 'art-03',
@@ -40,7 +33,7 @@ class Command(BaseCommand):
                 'weight_kg': 210,
                 'power_hp': 85,
                 'top_speed_kmh': 125,
-                'description': 'championship winner at fs balkans with custom aero package and dry-sump lubrication'
+                'description': 'fs balkans winner with custom aero package'
             },
             {
                 'slug': 'art-02',
@@ -50,16 +43,13 @@ class Command(BaseCommand):
                 'weight_kg': 225,
                 'power_hp': 80,
                 'top_speed_kmh': 118,
-                'description': 'tubular steel spaceframe with drexler limited slip differential'
+                'description': 'tubular steel spaceframe with drexler diff'
             },
         ]
 
         for item in cars_data:
-            car, created = Car.objects.get_or_create(slug=item['slug'], defaults=item)
-            if created:
-                self.stdout.write(f"added car: {car.name}")
+            Car.objects.get_or_create(slug=item['slug'], defaults=item)
 
-        # 3. seed sample sponsors
         sponsors_data = [
             {'name': 'Technical University of Cluj-Napoca', 'tier': 'platinum', 'website_url': 'https://utcluj.ro'},
             {'name': 'Schaeffler Romania', 'tier': 'platinum', 'website_url': 'https://www.schaeffler.ro'},
@@ -69,11 +59,8 @@ class Command(BaseCommand):
         ]
 
         for item in sponsors_data:
-            sponsor, created = Sponsor.objects.get_or_create(name=item['name'], defaults=item)
-            if created:
-                self.stdout.write(f"added sponsor: {sponsor.name}")
+            Sponsor.objects.get_or_create(name=item['name'], defaults=item)
 
-        # 4. seed sample recruitment application
         if RecruitmentApplication.objects.count() == 0:
             RecruitmentApplication.objects.create(
                 full_name='Andrei Popescu',
@@ -81,9 +68,8 @@ class Command(BaseCommand):
                 faculty='Faculty of Automation and Computer Science',
                 year_of_study=2,
                 department='Software & Telemetry',
-                motivation='passionate about embedded telemetry and can bus protocols, want to write data logging firmware for art-04',
+                motivation='interested in embedded telemetry and can bus logging',
                 status='pending'
             )
-            self.stdout.write('added sample recruitment application for testing')
 
-        self.stdout.write(self.style.SUCCESS('successfully finished seeding database!'))
+        self.stdout.write('done seeding db')

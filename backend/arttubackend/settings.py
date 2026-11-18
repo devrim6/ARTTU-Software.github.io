@@ -38,11 +38,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # cors headers so our react frontend on localhost:5173 can call this api
+    # cors and drf for the react frontend
     'corsheaders',
-    # django rest framework to give us json endpoints and api views easily
     'rest_framework',
-    # our student api app holding models, views, and urls
     'api',
 ]
 
@@ -125,14 +123,11 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-# cors configuration
-# our react frontend runs on vite at localhost:5173
-# so we let it make get/post requests to this django api without errors
+# allow react dev server to talk to django
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
-# allow all origins for easy course demo and presentation
 CORS_ALLOW_ALL_ORIGINS = True
 
 

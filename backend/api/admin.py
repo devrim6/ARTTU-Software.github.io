@@ -1,12 +1,8 @@
 from django.contrib import admin
 from .models import Car, Sponsor, RecruitmentApplication
 
-# ==============================================================================
-# admin panel setup
-# registering our models here automatically gives us a full web dashboard
-# where team leads can add cars, manage sponsors, and approve student recruits
-# without having to write separate frontend crud views
-# ==============================================================================
+# register models in django admin so we get crud pages out of the box
+
 
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
@@ -28,5 +24,6 @@ class RecruitmentApplicationAdmin(admin.ModelAdmin):
     list_display = ('full_name', 'email', 'department', 'faculty', 'year_of_study', 'status', 'created_at')
     list_filter = ('status', 'department', 'year_of_study')
     search_fields = ('full_name', 'email', 'motivation')
-    list_editable = ('status',)  # allows changing status directly from the table!
+    # let us change status right from the list view
+    list_editable = ('status',)
     readonly_fields = ('created_at',)

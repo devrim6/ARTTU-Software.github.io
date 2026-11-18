@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, CheckCircle2, AlertCircle, Loader2, Database, RefreshCw, UserCheck } from 'lucide-react';
+import { X, Send, CheckCircle2, AlertCircle, Loader2, Database, RefreshCw } from 'lucide-react';
 import { departments } from '../../data/departments';
 
-// ==============================================================================
-// recruitment modal component
-// this demonstrates full client-side view <-> server-side mvc connection:
-// 1. POST /api/recruitment/ sends new application to django controller & sqlite db
-// 2. GET /api/recruitment/ reads stored applications back to display in react view
-// 3. allows verifying status updates made by professor in django admin
-// ==============================================================================
+// modal for submitting recruitment applications to django and viewing existing ones
 
 interface ApplicationRecord {
   id: number;
@@ -33,10 +27,8 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
   onClose,
   defaultDepartment = '',
 }) => {
-  // tab state: 'form' for submitting new application, 'list' for reading from sqlite db
   const [activeTab, setActiveTab] = useState<'form' | 'list'>('form');
 
-  // form state variables
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [faculty, setFaculty] = useState('Faculty of Automation and Computer Science (UTCN)');
@@ -44,36 +36,31 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
   const [department, setDepartment] = useState(defaultDepartment || departments[0]?.name || 'Software & Telemetry');
   const [motivation, setMotivation] = useState('');
 
-  // submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ id: number; message: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // database records state for mvc read demonstration
   const [records, setRecords] = useState<ApplicationRecord[]>([]);
   const [isLoadingRecords, setIsLoadingRecords] = useState(false);
   const [listErrorMessage, setListErrorMessage] = useState<string | null>(null);
 
-  // fetch applications from django api
   const fetchApplications = async () => {
     setIsLoadingRecords(true);
     setListErrorMessage(null);
     try {
-      // calling get /api/recruitment/
       const res = await fetch('http://localhost:8000/api/recruitment/');
       if (!res.ok) {
-        throw new Error(`server returned status ${res.status}`);
+        throw new Error(`status ${res.status}`);
       }
       const data = await res.json();
       setRecords(data);
-    } catch (err: any) {
-      setListErrorMessage('unable to connect to django backend at http://localhost:8000. make sure python manage.py runserver is running');
+    } catch {
+      setListErrorMessage('cannot reach django server at http://localhost:8000');
     } finally {
       setIsLoadingRecords(false);
     }
   };
 
-  // automatically load records when user clicks the database records tab
   useEffect(() => {
     if (isOpen && activeTab === 'list') {
       fetchApplications();
@@ -88,7 +75,6 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
     setErrorMessage(null);
     setSuccessInfo(null);
 
-    // payload sent to django controller
     const payload = {
       full_name: fullName,
       email: email,
@@ -99,7 +85,6 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
     };
 
     try {
-      // post request to create a new row in recruitment_application table
       const response = await fetch('http://localhost:8000/api/recruitment/', {
         method: 'POST',
         headers: {
@@ -111,18 +96,18 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
       if (!response.ok) {
         const errorJson = await response.json().catch(() => null);
         throw new Error(
-          errorJson ? JSON.stringify(errorJson) : `server responded with status ${response.status}`
+          errorJson ? JSON.stringify(errorJson) : `status ${response.status}`
         );
       }
 
       const result = await response.json();
       setSuccessInfo({
         id: result.data?.id || 1,
-        message: result.message || 'application saved in backend database',
+        message: result.message || 'application saved',
       });
-    } catch (err: any) {
+    } catch {
       setErrorMessage(
-        'could not connect to django backend at http://localhost:8000. please ensure "python manage.py runserver" is running.'
+        'cannot connect to django backend at http://localhost:8000. make sure runserver is running.'
       );
     } finally {
       setIsSubmitting(false);
@@ -154,11 +139,10 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div 
+      <div
         className="relative w-full max-w-xl bg-white rounded-3xl border border-warm-250 shadow-2xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
         <button
           onClick={resetForm}
           className="absolute top-5 right-5 p-2 rounded-xl text-warm-500 hover:text-warm-900 hover:bg-warm-100 transition cursor-pointer"
@@ -167,20 +151,15 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
         <div className="space-y-1 mb-5">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-brand-red font-bold block">
-            MVC Architecture Demonstration
-          </span>
           <h2 className="font-display font-black text-2xl text-warm-900 tracking-tight">
-            Formula Student Recruitment Portal
+            Recruitment Portal
           </h2>
           <p className="text-xs text-warm-600">
-            Connected to Django REST Framework backend on port 8000 with SQLite persistence.
+            Submit an application or check saved entries.
           </p>
         </div>
 
-        {/* Tab Switcher */}
         <div className="flex items-center gap-2 border-b border-warm-200 pb-3 mb-5 text-xs font-mono">
           <button
             type="button"
@@ -192,7 +171,7 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
             }`}
           >
             <Send className="w-3.5 h-3.5" />
-            <span>Submit Application (POST)</span>
+            <span>Apply</span>
           </button>
 
           <button
@@ -205,11 +184,10 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
             }`}
           >
             <Database className="w-3.5 h-3.5" />
-            <span>Database Records (GET)</span>
+            <span>Applications</span>
           </button>
         </div>
 
-        {/* Tab 1: Submit Form (POST) */}
         {activeTab === 'form' && (
           <>
             {successInfo ? (
@@ -217,16 +195,11 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
                 <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-2">
                   <div className="flex items-center gap-2 font-bold text-sm text-emerald-800">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <span>Application Submitted Successfully!</span>
+                    <span>Application submitted</span>
                   </div>
                   <p className="text-xs text-emerald-700 leading-relaxed">
-                    Your application ID is <strong className="font-mono font-bold">#{successInfo.id}</strong>. 
-                    It is now saved in SQLite via Django's <code className="font-mono text-emerald-900 bg-emerald-100 px-1 py-0.5 rounded">RecruitmentApplication</code> model.
+                    Application <strong className="font-mono font-bold">#{successInfo.id}</strong> saved with status <span className="font-mono font-semibold">pending</span>.
                   </p>
-                  <div className="pt-2 text-[11px] font-mono text-emerald-900 bg-emerald-100/70 p-3 rounded-xl space-y-1">
-                    <div>👉 <strong>Step 1:</strong> Switch to the <strong>"Database Records (GET)"</strong> tab above to see it live.</div>
-                    <div>👉 <strong>Step 2:</strong> Go to <a href="http://localhost:8000/admin" target="_blank" rel="noreferrer" className="underline font-bold">http://localhost:8000/admin</a> (user: admin / pass: admin123) to edit or accept this application.</div>
-                  </div>
                 </div>
 
                 <div className="flex gap-2">
@@ -235,7 +208,7 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
                     onClick={() => setActiveTab('list')}
                     className="flex-1 py-3 rounded-xl bg-warm-900 hover:bg-black text-white font-bold text-xs uppercase tracking-wider transition cursor-pointer"
                   >
-                    View in Database Tab
+                    View Applications
                   </button>
                   <button
                     type="button"
@@ -252,7 +225,7 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
                   <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-brand-red shrink-0 mt-0.5" />
                     <div className="space-y-1">
-                      <span className="font-bold block">Backend Connection Error</span>
+                      <span className="font-bold block">Connection error</span>
                       <p className="text-[11px] text-red-700">{errorMessage}</p>
                     </div>
                   </div>
@@ -342,7 +315,7 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
                     rows={3}
                     value={motivation}
                     onChange={(e) => setMotivation(e.target.value)}
-                    placeholder="tell us about your passion for motorsport and any relevant projects or interests..."
+                    placeholder="tell us about your interests..."
                     className="w-full px-3.5 py-2.5 rounded-xl border border-warm-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-brand-red/30 focus:border-brand-red transition resize-none"
                   />
                 </div>
@@ -356,11 +329,11 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Sending to Django...</span>
+                        <span>Sending...</span>
                       </>
                     ) : (
                       <>
-                        <span>Submit Application (POST)</span>
+                        <span>Submit Application</span>
                         <Send className="w-3.5 h-3.5" />
                       </>
                     )}
@@ -379,25 +352,18 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
           </>
         )}
 
-        {/* Tab 2: Database Records View (GET) */}
         {activeTab === 'list' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-warm-900 block">
-                  Records in SQLite (<code className="font-mono text-brand-red">{records.length}</code> total)
-                </span>
-                <span className="text-[11px] text-warm-500">
-                  Fetched via <code className="font-mono">GET /api/recruitment/</code>
-                </span>
-              </div>
+              <span className="text-xs font-bold text-warm-900">
+                {records.length} applications
+              </span>
 
               <button
                 type="button"
                 onClick={fetchApplications}
                 disabled={isLoadingRecords}
                 className="px-3 py-1.5 rounded-lg border border-warm-300 hover:bg-warm-100 text-warm-700 text-xs font-mono font-semibold flex items-center gap-1.5 transition cursor-pointer"
-                title="Refresh from Django API"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoadingRecords ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
@@ -414,11 +380,11 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
             {isLoadingRecords ? (
               <div className="py-12 flex flex-col items-center justify-center text-warm-500 gap-2">
                 <Loader2 className="w-6 h-6 animate-spin text-brand-red" />
-                <span className="text-xs font-mono">Loading records from Django API...</span>
+                <span className="text-xs font-mono">Loading...</span>
               </div>
             ) : records.length === 0 ? (
               <div className="py-8 text-center text-xs text-warm-500 bg-warm-50 rounded-2xl border border-warm-200 p-4">
-                No recruitment applications found in database. Use the "Submit Application" tab to create one!
+                No applications found.
               </div>
             ) : (
               <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
@@ -454,10 +420,9 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
                 href="http://localhost:8000/admin/api/recruitmentapplication/"
                 target="_blank"
                 rel="noreferrer"
-                className="text-brand-red font-bold underline flex items-center gap-1"
+                className="text-brand-red font-bold underline"
               >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Open Django Admin to Accept/Reject</span>
+                Django Admin
               </a>
 
               <button
